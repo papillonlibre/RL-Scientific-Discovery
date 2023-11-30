@@ -19,6 +19,7 @@
 * Sensor control: continuous or maybe at discrete time steps?
 * Communication: boolean dependent on how much data we have in the buffer
 * Data analysis: reach the target plume to analyze for scientific discovery
+  * assume successful each time; switch that flips data analysis on
 
 ## Reward Systems
 * Successful plume detection: high positive reward
@@ -26,6 +27,9 @@
   * If we have a cluster of plumes in our detectable range, we could do a reciprocal reward to ensure we are always getting closer to all of them
 * System health: Negative reward for any damage to spacecraft systems due to high radiation levels.
 * Learning progress: reward for adapting to new scenarios
+  * good thing to have if we can implement it
+  * would go hand in hand with TL approach
+  * prioritize other rewards first
 * Efficiency: Reward for completing the mission with minimal fuel or resource usage.
 	* Assumes we have information about the least amount of fuel possible
 	* Could structure this as period reward proportional to amount of fuel remaining
@@ -35,6 +39,10 @@
 
 a. Penalties: Negative rewards for collisions with obstacles or incorrect analysis.  
 b. Exploration: provide rewards for visiting new areas.  
+* big consideration
+* computer will find a way to cheat system if it can
+* definitely want to explore  
+* Gym might have an exploration method easy to implement  
 c. Time Efficiency: Encourage reaching the plume in a timely manner.  
 d. Adaptability: Reward for successfully adapting to changes in the environment.
 
