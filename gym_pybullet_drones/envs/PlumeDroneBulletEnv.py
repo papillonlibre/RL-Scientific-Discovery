@@ -237,22 +237,20 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         reward = 0
 
-        # Generate a negative reward based on its concentration
-        for drone_position in self.next_positions:
-            reward -= (1 - self.get_concentration_value(drone_position))
+        # Generate a negative reward for the time taken to reach the goal
+        reward -= 1
 
-        # Generate a positive reward if the drone is near a plume source
         for drone_position in self.next_positions:
             for plume_position in self.plume_positions:
                 distance = np.linalg.norm(drone_position[:2] - plume_position)
                 if distance < 1:
-                    # self.visited.add(drone_position[:2])
-                    reward += 1
-
-        # Generate a negative reward if the drone is backtracking
-        # for drone_position in self.next_positions:
-        #     if drone_position[:2] in self.visited:
-        #         reward -= 1
+                    # Generate a positive reward for finding the goal
+                    if plume_position not in self.visited:
+                        reward += 100
+                        self.visited.add(plume_position)
+                    # Generate a negative reward for backtracking
+                    else:
+                        reward -= 1
 
         return reward
 
@@ -270,14 +268,8 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         -------
         bool of is truncated (true) or not (false)
         """
-        # Check if the drone has reached all plume sources
-        for visited_position in self.visited:
-            for plume_position in self.plume_positions:
-                distance = np.linalg.norm(visited_position - plume_position)
-                if distance > 1:
-                    return False
 
-        return True
+        return len(self.visited) == self.num_plume_sources
 
     def _computeTruncated(self):
         """
@@ -293,17 +285,8 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         -------
         bool of is truncated (true) or not (false)
         """
-        
-        # Check if max_steps has been reached
-        if self.step_counter >= self.max_steps:
-            return True
-        
-        # Check if the drone has gone beyond the grid
-        for drone_position in self.next_positions:
-            if drone_position[0] < 0 or drone_position[0] > self.size or drone_position[1] < 0 or drone_position[1] > self.size:
-                return True
 
-        return False
+        return self.step_counter >= self.max_steps
 
     def _computeInfo(self):
         """
@@ -320,7 +303,13 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         """
 
         # TODO: do this (optional)
-        return {}
+        return {
+            "previous_positions": self.previous_positions,
+            "next_positions": self.next_positions,
+            "visited": self.visited,
+            "concentrations": self.concentrations,
+            "plume_positions": self.plume_positions
+        }
 
     def _actionSpace(self):
         """
