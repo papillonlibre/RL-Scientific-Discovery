@@ -100,7 +100,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             self.plume_positions = initial_plume_positions
             self.initial_plume_positions = initial_plume_positions
         else:
-            self.plume_positions = [tuple(i) for i in np.random.randint(0, 10, size=(self.num_plume_sources,2))]
+            self.plume_positions = [tuple(i) for i in np.random.randint(0, 2, size=(self.num_plume_sources,2))]
             self.initial_plume_positions = None
 
         self.max_steps = max_steps
@@ -164,15 +164,16 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         if seed is not None:
             np.random.seed(seed)
         self.concentrations = np.zeros((self.size, self.size))
+        self.visited = set()
 
         if self.initial_plume_positions:
             self.plume_positions = self.initial_plume_positions
         else:
-            self.plume_positions = [tuple(i) for i in np.random.randint(0, 5, size=(self.num_plume_sources,2))]
+            self.plume_positions = [tuple(i) for i in np.random.randint(0, 2, size=(self.num_plume_sources,2))]
 
         for plume_position in self.plume_positions:
             print(f'loading in plume at position: {plume_position}')
-            p.loadURDF('/gym_pybullet_drones/assets/box.urdf', [plume_position[0], plume_position[1], 0])
+            p.loadURDF('/gym_pybullet_drones/assets/box.urdf', [plume_position[0], plume_position[1], 0], useFixedBase=True)
 
         return self._computeObs(), {}
 
@@ -240,18 +241,33 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         # Generate a negative reward for the time taken to reach the goal
         reward -= 1
 
-        for drone_position in self.next_positions:
+        for drone_position in self.get_current_positions():
             for plume_position in self.plume_positions:
-                distance = np.linalg.norm(drone_position[:2] - plume_position)
+                distance = np.linalg.norm(drone_position[:2] - plume_position) / self.incrementer
                 if distance < 1:
                     # Generate a positive reward for finding the goal
                     if plume_position not in self.visited:
-                        reward += 100
+                        reward += 1_000
                         self.visited.add(plume_position)
+                        print(f'found plume at position: {plume_position}')
                     # Generate a negative reward for backtracking
                     else:
                         reward -= 1
+                else:
+                    # Generate a negative reward for not finding the goal
+                    reward -= distance
+                    reward -= self.concentrations[self.convert_coordinates_to_indices(drone_position[:2])]
 
+        """
+        for drone_position in self.get_current_positions():
+            x_coord = drone_position[0]
+            y_coord = drone_position[1]
+
+            x_index, y_index = self.convert_coordinates_to_indices([x_coord, y_coord])
+
+            # Print number of non-zero values in concentration matrix
+        """
+                    
         return reward
 
     def _computeTerminated(self):

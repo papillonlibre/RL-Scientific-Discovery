@@ -38,10 +38,10 @@ def train_model():
     vec_env = DummyVecEnv([lambda: env])
 
     # Instantiate the agent
-    model = PPO('MultiInputPolicy', vec_env, verbose=1)
+    model = PPO('MultiInputPolicy', vec_env, learning_rate=1e-3, verbose=1)
 
     # Train the agent
-    model.learn(total_timesteps=1000, progress_bar=True) # Adjust the timesteps as necessary
+    model.learn(total_timesteps=10_000, progress_bar=True) # Adjust the timesteps as necessary
 
     # Save the model
     model.save("ppo_drone")
