@@ -7,7 +7,9 @@ import numpy as np
 # Parse Args
 parser = argparse.ArgumentParser()
 # parser.add_argument('-v', dest='verbose', default=False, action='store_true')
-parser.add_argument('--gui', dest='gui', default=True, action='store_true')
+parser.add_argument('--gui', dest='gui', action='store_true')
+parser.add_argument('--no-gui', dest='gui', action='store_false')
+parser.set_defaults(gui=True)
 parser.add_argument('--record', dest='record', default=False, action='store_true')
 parser.add_argument('--num_drones', dest='num_drones', default=1, type=int)
 parser.add_argument('--initial_drone_positions', dest='initial_drone_positions', default=None, type=int)
@@ -32,15 +34,14 @@ def train_model():
         record=args.record
     )
 
-
     # The algorithms require a vectorized environment to run
     vec_env = DummyVecEnv([lambda: env])
 
     # Instantiate the agent
-    model = PPO('MultiInputPolicy', vec_env, verbose=1)
+    model = PPO('MultiInputPolicy', vec_env, learning_rate=1e-3, verbose=1)
 
     # Train the agent
-    model.learn(total_timesteps=1000) # Adjust the timesteps as necessary
+    model.learn(total_timesteps=10_000, progress_bar=True) # Adjust the timesteps as necessary
 
     # Save the model
     model.save("ppo_drone")
