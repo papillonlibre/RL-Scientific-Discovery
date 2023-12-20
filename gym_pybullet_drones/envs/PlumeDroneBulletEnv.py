@@ -241,22 +241,23 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         # Generate a negative reward for the time taken to reach the goal
         reward -= 1
 
+        distance = np.inf
         for drone_position in self.get_current_positions():
             for plume_position in self.plume_positions:
-                distance = np.linalg.norm(drone_position[:2] - plume_position) / self.incrementer
-                if distance < 1:
-                    # Generate a positive reward for finding the goal
-                    if plume_position not in self.visited:
-                        reward += 1_000
-                        self.visited.add(plume_position)
-                        print(f'found plume at position: {plume_position}')
-                    # Generate a negative reward for backtracking
-                    else:
-                        reward -= 1
-                else:
-                    # Generate a negative reward for not finding the goal
-                    reward -= distance
-                    reward -= self.concentrations[self.convert_coordinates_to_indices(drone_position[:2])]
+                if plume_position in self.visited:
+                    continue
+                distance = np.min([distance, np.linalg.norm(drone_position[:2] - plume_position)])
+        
+        print(f'distance: {distance}')
+        if distance < 0.1:
+            # Generate a positive reward for finding the goal
+            reward += 1_000
+            self.visited.add(plume_position)
+            print(f'found plume at position: {plume_position}')
+        else:
+            # Generate a negative reward for not finding the goal
+            reward -= distance
+            # reward -= self.concentrations[self.convert_coordinates_to_indices(drone_position[:2])]
 
         """
         for drone_position in self.get_current_positions():
