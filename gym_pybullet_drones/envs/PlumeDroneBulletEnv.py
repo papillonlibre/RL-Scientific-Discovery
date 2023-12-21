@@ -24,7 +24,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             initial_rpys=None,
             physics: Physics=Physics.PYB,
             pyb_freq: int = 480,
-            ctrl_freq: int = 120,
+            ctrl_freq: int = 60,
             gui=True,
             record=False,
             obs: ObservationType=ObservationType.KIN,
@@ -100,7 +100,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             self.plume_positions = initial_plume_positions
             self.initial_plume_positions = initial_plume_positions
         else:
-            self.plume_positions = [tuple(i) for i in np.random.randint(0, 2, size=(self.num_plume_sources,2))]
+            self.plume_positions = [tuple(i) for i in np.random.randint(0, 4, size=(self.num_plume_sources,2))]
             self.initial_plume_positions = None
 
         self.max_steps = max_steps
@@ -169,7 +169,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         if self.initial_plume_positions:
             self.plume_positions = self.initial_plume_positions
         else:
-            self.plume_positions = [tuple(i) for i in np.random.randint(0, 2, size=(self.num_plume_sources,2))]
+            self.plume_positions = [tuple(i) for i in np.random.randint(0, 4, size=(self.num_plume_sources,2))]
 
         for plume_position in self.plume_positions:
             print(f'loading in plume at position: {plume_position}')
@@ -238,37 +238,31 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         reward = 0
 
-        # Generate a negative reward for the time taken to reach the goal
-        reward -= 1
-
-        distance = np.inf
+        min_distance = np.inf
+        closest_plume = None
         for drone_position in self.get_current_positions():
             for plume_position in self.plume_positions:
-                if plume_position in self.visited:
-                    continue
-                distance = np.min([distance, np.linalg.norm(drone_position[:2] - plume_position)])
+                distance = np.linalg.norm(drone_position[:2] - plume_position)
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_plume = plume_position
         
-        print(f'distance: {distance}')
-        if distance < 0.1:
+        concentration = self.get_concentration_value(self.get_current_positions()[0])
+        if concentration > 0.8:
+            if closest_plume in self.visited:
+                print('Already visited this plume')
+                reward -= 1_000
+            else:
             # Generate a positive reward for finding the goal
-            reward += 1_000
-            self.visited.add(plume_position)
-            print(f'found plume at position: {plume_position}')
+                reward += 1_000
+                self.visited.add(closest_plume)
+                print(f'found plume at position: {closest_plume}')
         else:
             # Generate a negative reward for not finding the goal
-            reward -= distance
-            # reward -= self.concentrations[self.convert_coordinates_to_indices(drone_position[:2])]
-
-        """
-        for drone_position in self.get_current_positions():
-            x_coord = drone_position[0]
-            y_coord = drone_position[1]
-
-            x_index, y_index = self.convert_coordinates_to_indices([x_coord, y_coord])
-
-            # Print number of non-zero values in concentration matrix
-        """
+            reward -= 1 - concentration
                     
+        print(f'concentration: {concentration}')
+
         return reward
 
     def _computeTerminated(self):
@@ -303,7 +297,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         bool of is truncated (true) or not (false)
         """
 
-        return self.step_counter >= self.max_steps
+        return self.step_counter >= self.max_steps or self.get_concentration_value(self.get_current_positions()[0]) < 1e-5
 
     def _computeInfo(self):
         """

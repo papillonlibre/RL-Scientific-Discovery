@@ -20,6 +20,14 @@ parser.add_argument('--size', dest='size', default=100, type=int)
 parser.add_argument('--background_concentration', dest='background_concentration', default=5, type=int)
 args = parser.parse_args()
 
+def callback(locals, globals):
+    # Extract the relevant information from locals_
+    # For example, you can access the total reward of the current episode
+    current_episode_reward = locals['ep_rew_mean']
+
+    # Log the information (you can also use a custom logger)
+    print(f"Average Reward per Episode: {current_episode_reward}")
+
 def train_model():
     # Instantiate the environment
     env = PlumeDroneBulletEnv(
@@ -38,10 +46,10 @@ def train_model():
     vec_env = DummyVecEnv([lambda: env])
 
     # Instantiate the agent
-    model = PPO('MultiInputPolicy', vec_env, learning_rate=1e-3, verbose=1)
+    model = PPO('MultiInputPolicy', vec_env, learning_rate=1e-4)
 
     # Train the agent
-    model.learn(total_timesteps=10_000, progress_bar=True) # Adjust the timesteps as necessary
+    model.learn(total_timesteps=1_000_000, progress_bar=True)
 
     # Save the model
     model.save("ppo_drone")
