@@ -24,7 +24,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             initial_rpys=None,
             physics: Physics=Physics.PYB,
             pyb_freq: int = 480,
-            ctrl_freq: int = 60,
+            ctrl_freq: int = 120,
             gui=True,
             record=False,
             obs: ObservationType=ObservationType.KIN,
@@ -100,7 +100,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             self.plume_positions = initial_plume_positions
             self.initial_plume_positions = initial_plume_positions
         else:
-            self.plume_positions = [tuple(i) for i in np.random.randint(0, 4, size=(self.num_plume_sources,2))]
+            self.plume_positions = [tuple(i) for i in np.random.randint(0, 10, size=(self.num_plume_sources,2))]
             self.initial_plume_positions = None
 
         self.max_steps = max_steps
@@ -169,7 +169,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         if self.initial_plume_positions:
             self.plume_positions = self.initial_plume_positions
         else:
-            self.plume_positions = [tuple(i) for i in np.random.randint(0, 4, size=(self.num_plume_sources,2))]
+            self.plume_positions = [tuple(i) for i in np.random.randint(0, 10, size=(self.num_plume_sources,2))]
 
         for plume_position in self.plume_positions:
             print(f'loading in plume at position: {plume_position}')
@@ -237,7 +237,14 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         """
 
         reward = 0
+        concentration = self.get_concentration_value(self.get_current_positions()[0])
 
+        if concentration > 0.8:
+            reward += 1000
+        else:
+            reward -= (1 - concentration)
+
+        """
         min_distance = np.inf
         closest_plume = None
         for drone_position in self.get_current_positions():
@@ -260,8 +267,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         else:
             # Generate a negative reward for not finding the goal
             reward -= 1 - concentration
-                    
-        print(f'concentration: {concentration}')
+        """
 
         return reward
 
