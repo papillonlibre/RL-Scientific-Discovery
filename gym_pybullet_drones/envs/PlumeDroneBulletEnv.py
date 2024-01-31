@@ -130,6 +130,13 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         # initializing visited set. can be useful to know whether drone is backtracking or not
         self.visited = set()
+        self.curr_step = 0
+
+        self.logger = Logger(
+            logging_freq_hz=ctrl_freq,
+            output_folder="results",
+            num_drones=num_drones
+        )
 
         # initializing drone-specific behavior and passing through args
         super().__init__(
@@ -176,6 +183,10 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             p.loadURDF('/gym_pybullet_drones/assets/box.urdf', [plume_position[0], plume_position[1], 0], useFixedBase=True)
 
         return self._computeObs(), {}
+    
+    def close(self):
+        print("Shutting down")
+        self.logger.save_as_csv()
 
     def step(self, action):
         """
@@ -195,13 +206,29 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         self.previous_positions = self.get_current_positions()
         self.next_positions = next_position
 
+        result = super().step(next_position)
+        concentrations = np.array(self.get_concentration_value(self.get_current_positions()[0])).reshape((1,))
+        deltas = result[0]["agent_deltas"].flatten()
+        log_state = np.hstack([
+            concentrations,
+            deltas,
+            np.zeros(17)
+        ])
+
+        self.logger.log(
+            drone=0,
+            timestamp=self.step_counter / self.CTRL_FREQ,
+            state=log_state,
+            control=np.zeros(12)
+        )
+
         # NOTE for myself (mark): for some reason, just calling super().step and returning those values seems to work
         # so does passing in False, False for _computeTerminated, _computeTruncated
         # but returning self._computeObs(), self._computeReward(), self._computeTerminated(), self._computeTruncated, self._computeInfo()
         # resets the environment over and over again. can't figure out why, but shouldn't affect anything for you guys
 
         # return self._computeObs(), self._computeReward(), self._computeTerminated(), self._computeTruncated, self._computeInfo()
-        return super().step(next_position)
+        return result
 
     # Here you should implement your functions for getting concentrations, calculating rewards and checking termination
     def _computeObs(self):
