@@ -1,15 +1,7 @@
-import pybullet as p
+import gymnasium
 import numpy as np
-import gymnasium as gym
-from gymnasium import spaces
-from gym_pybullet_drones.envs.BaseRLAviary import BaseRLAviary
-from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.utils.enums import ActionType, Physics, ObservationType
-from gym_pybullet_drones.control.BaseControl import DroneModel
 
-import random
-
-class PlumeDroneBulletEnv(BaseRLAviary):
+class PlumeDroneBulletEnv(gymnasium.Env):
     def __init__(
             self,
             num_drones: int = 1,
@@ -19,16 +11,10 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             size: int = 100,
             background_concentration: int = 5,
             incrementer: float = 0.5,
-            drone_model: DroneModel=DroneModel.CF2X,
             initial_xyzs=None,
             initial_rpys=None,
-            physics: Physics=Physics.PYB,
-            pyb_freq: int = 480,
-            ctrl_freq: int = 120,
             gui=True,
             record=False,
-            obs: ObservationType=ObservationType.KIN,
-            act: ActionType=ActionType.PID
         ):
 
         """Plume reinforcement learning environment built off of PyBullet.
@@ -130,21 +116,6 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         # initializing visited set. can be useful to know whether drone is backtracking or not
         self.visited = set()
-
-        # initializing drone-specific behavior and passing through args
-        super().__init__(
-            drone_model=drone_model,
-            num_drones=num_drones,
-            initial_xyzs=initial_xyzs,
-            initial_rpys=initial_rpys,
-            physics=physics,
-            pyb_freq=pyb_freq,
-            ctrl_freq=ctrl_freq,
-            gui=gui,
-            record=record,
-            obs=obs,
-            act=act
-        )
 
     def reset(self, seed=None):
         """
@@ -368,171 +339,3 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             "agent_deltas": spaces.Box(low=0, high=self.size, shape=(2,), dtype=np.float32),
             "concentrations": spaces.Box(low=0, high=self.size, shape=(self.size, self.size), dtype=np.float32)
         })
-
-    ####################################################################################
-    ############# HELPER FUNCTIONS #####################################################
-    ####################################################################################
-
-    def get_next_positions(self, action):
-        """
-        Next position function
-        Uses drone-specific functions to calculate the next target position,
-        based on addition of current_position + movement
-
-        Parameters
-        ----------
-        action : int
-            index of action to reference self._action_to_direction
-
-        Returns
-        -------
-        matrix shape (NUM_DRONES, 3)
-            each inner array is [x,y,z] next/target position of a drone.
-        """
-
-        current_positions = self.get_current_positions()
-        movements = []
-        for i in range(self.NUM_DRONES):
-            movements.append(self._action_to_direction[action])
-        next_positions = np.array(current_positions) + np.array(movements)
-
-        # fix z at height
-        for next_position in next_positions:
-            next_position[-1] = self.incrementer * 2
-
-
-        return next_positions
-    
-    def get_current_deltas(self):
-        """
-        Current deltas function
-        Uses drone-specific functions to provide the current position of drone in relation to the plumes
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        matrix shape (NUM_DRONES, 3)
-            each inner array is [x,y,z] position of a drone.
-        """
-        
-        current_deltas = []
-        for i in range(self.NUM_DRONES):
-            current_deltas.append(self._getDroneStateVector(i)[0:2] - self.plume_positions[0])  # Get the position (x, y, z)
-        return current_deltas
-
-    def get_current_positions(self):
-        """
-        Current position function
-        Uses drone-specific functions to provide the current position of drone
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        matrix shape (NUM_DRONES, 3)
-            each inner array is [x,y,z] position of a drone.
-        """
-
-        current_positions = []
-        for i in range(self.NUM_DRONES):
-            current_positions.append(self._getDroneStateVector(i)[0:3])  # Get the position (x, y, z)
-        return current_positions
-
-    def gaussian(self, d: float, a: float = 1, c: float = 1) -> float:
-        """
-        Gaussian function
-        How we calculate the simulated concentration gradient.
-
-        Parameters
-        ----------
-        d : float
-            distance to origin
-        a : float, optional
-            Magnitude, by default 1
-        c : float, optional
-            Standard deviation, by default 1
-
-        Returns
-        -------
-        float
-            Gaussian evaluated at d.
-        """
-
-        return a * np.exp(-(d**2) / (5*c**2))
-
-    def calculate_size(self, size):
-        return int(np.ceil(size / self.incrementer) + 1)
-
-    def get_concentration_value(self, coordinate):
-        if len(coordinate) < 2:
-            print(f'coordinate len in get_concentration_value not correct. needs to be 2, is {len(coordinate)}')
-            return None
-        elif len(coordinate) > 2:
-            coordinate = coordinate[:2]
-        
-        x_index, y_index = self.convert_coordinates_to_indices(coordinate)
-
-        return self.concentrations[x_index][y_index]
-    
-    def convert_coordinates_to_indices(self, coordinate):
-        if len(coordinate) < 2:
-            print(f'coordinate len in get_concentration_value not correct. needs to be 2, is {len(coordinate)}')
-            return None
-        elif len(coordinate) > 2:
-            coordinate = coordinate[:2]
-        
-        # round coordinates to nearest increment
-        x_rounded = np.round(coordinate[0] / self.incrementer) * self.incrementer
-        y_rounded = np.round(coordinate[1] / self.incrementer) * self.incrementer
-
-        # convert coordinates to indices
-        x_index = int(x_rounded / self.incrementer)
-        y_index = int(y_rounded / self.incrementer)
-
-        return x_index, y_index
-
-    def update_concentration_matrix(self):
-        """
-        Get concentrations function
-        Calculates the new concentration found at this position
-        using the Gaussian function to simulate concentration
-        and saves it to the concentration map, which is a matrix of
-        size (size,size).
-        NOTE: Concentration values are using 2D coordinates of (x,y)
-        because we are keeping the z axis fixed
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        square matrix of size (size,size) filled with concentration values
-        """
-
-        positions = self.get_current_positions()
-
-        shortest_distance = np.inf  # Set initial shortest distance to infinity
-
-        for drone_position in positions:
-            for plume_position in self.plume_positions:
-
-                plume_position = np.array(plume_position)
-                distance = np.linalg.norm(drone_position[:2] - plume_position)
-
-                if distance < shortest_distance:
-                    shortest_distance = distance
-
-            x_coord = drone_position[0]
-            y_coord = drone_position[1]
-
-            x_index, y_index = self.convert_coordinates_to_indices([x_coord, y_coord])
-
-            self.concentrations[x_index][y_index] = self.gaussian(shortest_distance)
-
-        return self.concentrations
