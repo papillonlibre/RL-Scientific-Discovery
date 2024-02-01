@@ -186,7 +186,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
     
     def close(self):
         print("Shutting down")
-        self.logger.save_as_csv()
+        self.logger.save()
 
     def step(self, action):
         """
@@ -246,7 +246,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         state = {
             # "agent_positions": np.array(self.get_current_positions()),
-            "agent_deltas": np.array(self.get_current_deltas()),
+            "agent_deltas": np.array(self.get_current_deltas(), dtype=np.int32),
             "concentrations": np.array(self.update_concentration_matrix())
         }
         # print(state["agent_deltas"])
@@ -267,14 +267,14 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         reward = 0
         concentration = self.get_concentration_value(self.get_current_positions()[0])
+        # print(concentration)
 
         if concentration > 0.9:
-            reward += 1000
-            print("Reached plume")
+            reward += concentration * 1000
         else:
             reward -= (1 - concentration)
 
-        print(f'Concentration: {concentration:.8f}\t\tReward: {reward:.8f}', end='\r')
+        # print(f'Concentration: {concentration:.8f}\t\tReward: {reward:.8f}', end='\r')
 
         """
         min_distance = np.inf
@@ -335,7 +335,8 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         bool of is truncated (true) or not (false)
         """
 
-        return self.step_counter >= self.max_steps
+        return self.step_counter >= self.max_steps \
+            or self.get_concentration_value(self.get_current_positions()[0]) < 0.02
 
     def _computeInfo(self):
         """
@@ -490,7 +491,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
             Gaussian evaluated at d.
         """
 
-        return a * np.exp(-(d**2) / (5*c**2))
+        return a * np.exp(-(d**2) / (2*c**2))
 
     def calculate_size(self, size):
         return int(np.ceil(size / self.incrementer) + 1)
