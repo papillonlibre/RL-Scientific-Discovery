@@ -178,9 +178,11 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         else:
             self.plume_positions = [tuple(i) for i in np.random.randint(0, 4, size=(self.num_plume_sources,2))]
 
+        import urdf_models.models_data as md
+
         for plume_position in self.plume_positions:
             print(f'loading in plume at position: {plume_position}')
-            p.loadURDF('/gym_pybullet_drones/assets/box.urdf', [plume_position[0], plume_position[1], 0], useFixedBase=True)
+            p.loadURDF(md.model_lib()['plate'], [plume_position[0], plume_position[1], 0.02], useFixedBase=True)
 
         return self._computeObs(), {}
     
