@@ -265,6 +265,9 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         int reward
         """
 
+        """
+        Comment back in for singular plume environment
+        """
         reward = 0
         concentration = self.get_concentration_value(self.get_current_positions()[0])
         # print(concentration)
@@ -277,29 +280,30 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         # print(f'Concentration: {concentration:.8f}\t\tReward: {reward:.8f}', end='\r')
 
         """
-        min_distance = np.inf
-        closest_plume = None
-        for drone_position in self.get_current_positions():
-            for plume_position in self.plume_positions:
-                distance = np.linalg.norm(drone_position[:2] - plume_position)
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_plume = plume_position
-        
-        concentration = self.get_concentration_value(self.get_current_positions()[0])
-        if concentration > 0.8:
-            if closest_plume in self.visited:
-                print('Already visited this plume')
-                reward -= 1_000
-            else:
-            # Generate a positive reward for finding the goal
-                reward += 1_000
-                self.visited.add(closest_plume)
-                print(f'found plume at position: {closest_plume}')
-        else:
-            # Generate a negative reward for not finding the goal
-            reward -= 1 - concentration
+        Comment back in for environments with multiple plumes
         """
+        # min_distance = np.inf
+        # closest_plume = None
+        # for drone_position in self.get_current_positions():
+        #     for plume_position in self.plume_positions:
+        #         distance = np.linalg.norm(drone_position[:2] - plume_position)
+        #         if distance < min_distance:
+        #             min_distance = distance
+        #             closest_plume = plume_position
+        
+        # concentration = self.get_concentration_value(self.get_current_positions()[0])
+        # if concentration > 0.8:
+        #     if closest_plume in self.visited:
+        #         print('Already visited this plume')
+        #         reward -= 1_000
+        #     else:
+        #     # Generate a positive reward for finding the goal
+        #         reward += 1_000
+        #         self.visited.add(closest_plume)
+        #         print(f'found plume at position: {closest_plume}')
+        # else:
+        #     # Generate a negative reward for not finding the goal
+        #     reward -= 1 - concentration
 
         return reward
 
