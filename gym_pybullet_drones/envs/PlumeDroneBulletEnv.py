@@ -248,7 +248,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
 
         state = {
             # "agent_positions": np.array(self.get_current_positions()),
-            "agent_deltas": np.array(self.get_current_deltas(), dtype=np.int32),
+            "agent_deltas": np.array(self.get_current_deltas()),
             "concentrations": np.array(self.update_concentration_matrix())
         }
         # print(state["agent_deltas"])
@@ -342,7 +342,7 @@ class PlumeDroneBulletEnv(BaseRLAviary):
         """
 
         return self.step_counter >= self.max_steps \
-            or self.get_concentration_value(self.get_current_positions()[0]) < 0.02
+            or self.get_concentration_value(self.get_current_positions()[0]) < 0.01
 
     def _computeInfo(self):
         """
