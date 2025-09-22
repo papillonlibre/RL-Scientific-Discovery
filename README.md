@@ -3,8 +3,8 @@ Reinforcement Learning Model for Scientific Discovery on a planetary body; advis
 
 ## Introduction
 
-In the pursuit of advancing autonomous space exploration, this project endeav-
-ors to develop an innovative reinforcement learning model tailored for online
+In the pursuit of advancing autonomous space exploration, this project endeavors to
+develop an innovative reinforcement learning model tailored for online
 learning within the confines of a simulated environment. The specific focus is
 on the detection of plumes, such as those found on Enceladus or analogous sci-
 entific phenomena on other planetary bodies. The model’s multifaceted objec-
